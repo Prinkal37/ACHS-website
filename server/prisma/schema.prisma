@@ -1,0 +1,173 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  admissionApplication AdmissionApplication?
+  teacherClasses      Class[]               @relation("TeacherClasses")
+  studentClasses      Class[]               @relation("StudentClasses")
+  assignments         Assignment[]
+  submissions         AssignmentSubmission[]
+  grades             Grade[]
+  attendance         Attendance[]
+  announcements      Announcement[]
+}
+
+model AdmissionStatus {
+  id        String   @id @default(uuid())
+  isOpen    Boolean  @default(false)
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AdmissionApplication {
+  id                String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  firstName        String
+  lastName         String
+  dateOfBirth      DateTime
+  gender           String
+  address          String
+  phoneNumber      String
+  previousSchool   String?
+  grade            String
+  parentName       String
+  parentPhone      String
+  parentEmail      String
+  status           String   @default("PENDING")
+  registrationNumber String? @unique
+  rollNumber       String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Class {
+  id          String   @id @default(uuid())
+  name        String
+  section     String
+  grade       String
+  teacherId   String
+  teacher     User     @relation("TeacherClasses", fields: [teacherId], references: [id])
+  students    User[]   @relation("StudentClasses")
+  subjects    Subject[]
+  assignments Assignment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, section, grade])
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  description String?
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id])
+  assignments Assignment[]
+  grades      Grade[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Assignment {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  dueDate     DateTime
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id])
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  teacherId   String
+  teacher     User     @relation(fields: [teacherId], references: [id])
+  submissions AssignmentSubmission[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AssignmentSubmission {
+  id            String   @id @default(uuid())
+  assignmentId  String
+  assignment    Assignment @relation(fields: [assignmentId], references: [id])
+  studentId     String
+  student       User     @relation(fields: [studentId], references: [id])
+  content       String
+  grade         Float?
+  feedback      String?
+  submittedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([assignmentId, studentId])
+}
+
+model Grade {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id])
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  score       Float
+  term        String
+  year        Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([studentId, subjectId, term, year])
+}
+
+model Attendance {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id])
+  date        DateTime
+  status      String   // PRESENT, ABSENT, LATE
+  remarks     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([studentId, date])
+}
+
+model Announcement {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  priority    String   @default("NORMAL") // HIGH, NORMAL, LOW
+  startDate   DateTime
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SchoolEvent {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  startDate   DateTime
+  endDate     DateTime
+  location    String?
+  type        String   // ACADEMIC, SPORTS, CULTURAL, OTHER
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
